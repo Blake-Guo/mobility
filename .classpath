@@ -17,5 +17,23 @@
 			<attribute name="maven.pomderived" value="true"/>
 		</attributes>
 	</classpathentry>
+	<classpathentry kind="lib" path="/home/hadoop/CodeSpace/Java/MobilityMining/sparse-eig-01.1/sparse-eig-01.1.jar" sourcepath="sparse-eig-01.1/src">
+		<attributes>
+			<attribute name="javadoc_location" value="file:/home/hadoop/CodeSpace/Java/MobilityMining/sparse-eig-01.1/doc/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="/home/hadoop/CodeSpace/Java/MobilityMining/sparse-eig-01.1/lib/arpack_combined_all.jar"/>
+	<classpathentry kind="lib" path="/home/hadoop/CodeSpace/Java/MobilityMining/sparse-eig-01.1/lib/junit-4.10.jar"/>
+	<classpathentry kind="lib" path="/home/hadoop/CodeSpace/Java/MobilityMining/sparse-eig-01.1/lib/netlib-java-0.9.3.jar"/>
+	<classpathentry kind="lib" path="/home/hadoop/CodeSpace/Java/MobilityMining/javaml-0.1.7/javaml-0.1.7.jar" sourcepath="/home/hadoop/CodeSpace/Java/MobilityMining/javaml-0.1.7/javaml-0.1.7-src.zip">
+		<attributes>
+			<attribute name="javadoc_location" value="file:/home/hadoop/CodeSpace/Java/MobilityMining/javaml-0.1.7/doc/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="/home/hadoop/CodeSpace/Java/MobilityMining/javaml-0.1.7/lib/ajt-2.9.jar"/>
+	<classpathentry kind="lib" path="/home/hadoop/CodeSpace/Java/MobilityMining/javaml-0.1.7/lib/commons-math-1.2.jar"/>
+	<classpathentry kind="lib" path="/home/hadoop/CodeSpace/Java/MobilityMining/javaml-0.1.7/lib/Jama-1.0.2.jar"/>
+	<classpathentry kind="lib" path="/home/hadoop/CodeSpace/Java/MobilityMining/javaml-0.1.7/lib/libsvm.jar"/>
+	<classpathentry kind="lib" path="/home/hadoop/CodeSpace/Java/MobilityMining/javaml-0.1.7/lib/weka.jar"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>

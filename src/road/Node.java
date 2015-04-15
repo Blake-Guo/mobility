@@ -5,7 +5,7 @@ public class Node {
 	//public String nodeId;
 	public double x;
 	public double y;
-	List<Integer> adjEdgeIds; // the edges attached to this node.
+	public List<Integer> adjEdgeIds; // the edges attached to this node.
 	
 	public Node(){
 		//nodeId = "";
