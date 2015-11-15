@@ -1,4 +1,4 @@
-package spectral;
+package taxi;
 
 import java.util.*;
 import java.io.*;
@@ -15,7 +15,7 @@ public class LaplacianGen {
 	public Map<Integer, Double>[] sim_sparse_mat;
 	public Map<Integer, Double>[] lap_sparse_mat;
 
-	public MGraph mgraph;
+	public ODGraph mgraph;
 
 	/**
 	 * Generate the similarity matrix based on the given mobility matrix file
@@ -27,7 +27,7 @@ public class LaplacianGen {
 	 */
 	public void initSimMatrix_Sparse(String nodeInFile, String edgeInFile,
 			String mobSparseMatFile) throws IOException {
-		mgraph = new MGraph();
+		mgraph = new ODGraph();
 		mgraph.readInRoadAndMGraph(nodeInFile, edgeInFile, mobSparseMatFile);
 
 		double ave_cosim = 0;
@@ -46,6 +46,7 @@ public class LaplacianGen {
 				double cosim = dot_sparse(i, neigh) + spatial_alpha;
 
 				if (neigh < i) {
+					//to make sure the sparse matrix is symmetric, we choose the larger similarity value and assign it to both(means at least one of they two are the k neighbor of the other).
 					double precosim = (sim_sparse_mat[neigh].containsKey(i) == false) ? 0.0
 							: sim_sparse_mat[neigh].get(i);
 					cosim = (precosim > cosim) ? precosim : cosim;

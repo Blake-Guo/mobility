@@ -102,7 +102,7 @@ public class SpatialHierarchicalClustering {
 						int tcid2 = edge2ClusterIds.get(neigh);
 
 						if (cid1 < tcid2 && vclusterIds.contains(tcid2) == false) {// we only cluster adjacent clusters
-											// and void duplicate computation.
+											// and avoid duplicate computation.
 							vclusterIds.add(tcid2);
 							double tdis = completeLinkage(cid1, tcid2);
 
@@ -127,21 +127,21 @@ public class SpatialHierarchicalClustering {
 					if (fflag == true)
 						break;
 
-				}// for(Integer t_eid : entry.getValue())
+				}// go over each edge in that cluster
 				if (fflag == true)
 					break;
-			}//for (Map.Entry<Integer, Set<Integer>> entry : clusterSet.entrySet())
+			}//go over each cluster
 
 			// mergeTwoClusters, move the edges in id1 to id2.
 			mergeTwoClusters(id1, id2);
 
 			if (clusterSet.size() % 1000 == 0) {
 				cThres += cThres_Add;
-				if (cThres > 1e-2)
-					cThres = 1e-2;
+				if (cThres > 5e-2)
+					cThres = 5e-2;
 			}
 
-			if (clusterSet.size() % 50 == 0) {
+			if (clusterSet.size() % 500 == 0) {
 				System.out.println("cluster size:" + clusterSet.size());
 			}
 

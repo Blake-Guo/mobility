@@ -2,6 +2,9 @@ package road;
 
 import java.util.*;
 
+import Geo.Point;
+import Geo.Point_latlon;
+
 public class CoordinateConversion {
 
 	public CoordinateConversion() {
@@ -68,6 +71,10 @@ public class CoordinateConversion {
 
 		return UTM;
 
+	}
+	
+	public Point convertLatLonToUTM(Point_latlon p){
+		return convertLatLonToUTM(p.lat, p.lon);
 	}
 
 	protected void setVariables(double latitude, double longitude) {
@@ -206,4 +213,10 @@ public class CoordinateConversion {
 	double A6 = -1.00541E-07;
 
 	// }LatLon2UTM
+	
+	public static void main(String[] args){
+		CoordinateConversion convert = new CoordinateConversion();
+		Point p = convert.convertLatLonToUTM(40.74427, -73.981239);
+		System.out.println(p.x + " " + p.y);
+	}
 }

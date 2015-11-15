@@ -1,4 +1,4 @@
-package spectral;
+package taxi;
 
 import road.*;
 import utility.ConnectDB;
@@ -11,12 +11,14 @@ import java.util.*;
 import java.io.*;
 import java.text.*;
 
-public class MGraph {
+import Geo.Point;
+
+public class ODGraph {
 
 	public RoadNetwork rnetwork;
 	public Map<Integer, Integer>[] m_sparse_mat;
 
-	public MGraph() {
+	public ODGraph() {
 
 	}
 	
@@ -184,7 +186,7 @@ public class MGraph {
 	}
 	
 	public static void main(String[] args)throws IOException, SQLException, ParseException{
-		MGraph mgraph = new MGraph();
+		ODGraph mgraph = new ODGraph();
 		//mgraph.initMGraph("data/cnodes.csv", "data/cedges.csv");
 		//mgraph.genFeatureVectors_DB();
 		//mgraph.writeMGraph_sparse("sparse_mgraph.csv");

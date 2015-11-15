@@ -1,6 +1,8 @@
 package road;
 import java.util.*;
 
+import Geo.Point;
+
 
 public class Edge {
 	public int edgeId;

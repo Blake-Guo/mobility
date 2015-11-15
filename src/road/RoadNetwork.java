@@ -4,6 +4,9 @@ import java.util.*;
 import java.awt.geom.Line2D;
 import java.io.*;
 
+import Geo.Point;
+import Geo.Point_latlon;
+
 
 public class RoadNetwork {
 	public Map<String, Node> nodes;
