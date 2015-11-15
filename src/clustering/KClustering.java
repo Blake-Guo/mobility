@@ -11,7 +11,7 @@ import net.sf.javaml.core.Dataset;
 import net.sf.javaml.core.Instance;
 import net.sf.javaml.tools.data.FileHandler;
 
-public class KNNClustering {
+public class KClustering {
 
 	public void outputClusters(String edgeVecsFile, String edgeInFile,
 			String edgeClusOutFile, int k) throws Exception {
@@ -118,7 +118,7 @@ public class KNNClustering {
 		// System.out.println();
 		// }
 
-		KNNClustering knn = new KNNClustering();
+		KClustering knn = new KClustering();
 		
 //		System.out.println(knn.bestClusterK("eigen_vecs.csv" ));
 		knn.outputClusters("eigen_vecs.csv", "data/cedges.csv",
