@@ -6,10 +6,11 @@ import Geo.Point;
 import Geo.Point_latlon;
 
 public class CoordinateConversion {
-
+	
 	public CoordinateConversion() {
 
 	}
+	
 
 	private void validate(double latitude, double longitude) {
 		if (latitude < -90.0 || latitude > 90.0 || longitude < -180.0
@@ -20,11 +21,11 @@ public class CoordinateConversion {
 
 	}
 
-	public double degreeToRadian(double degree) {
+	private double degreeToRadian(double degree) {
 		return degree * Math.PI / 180;
 	}
 
-	public double radianToDegree(double radian) {
+	private double radianToDegree(double radian) {
 		return radian * 180 / Math.PI;
 	}
 
@@ -213,6 +214,7 @@ public class CoordinateConversion {
 	double A6 = -1.00541E-07;
 
 	// }LatLon2UTM
+	
 	
 	public static void main(String[] args){
 		CoordinateConversion convert = new CoordinateConversion();

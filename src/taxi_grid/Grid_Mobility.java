@@ -16,8 +16,12 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import java.util.TimeZone;
 
 import Geo.Point_latlon;
@@ -32,29 +36,69 @@ import road.CoordinateConversion;
 public class Grid_Mobility {
 	
 	Point[] boundPoints;
+	Point_latlon[] boundGeoPoints;
 	double grid_width;// this is the width of a grid, and the unit metric is kilometer
 	double grid_height;// this is the height of a grid, and the unit metric kilometer
+	
 	double boundary_width;// the width of the boundary
 	double boundary_height;// the height of the boundary
 	Polygon[] grid_boundaries;
-	int grid_xnumber;
-	int grid_ynumber;
+	public int grid_xnumber;
+	public int grid_ynumber;
 	int grid_number;
 	int[][][] mtensor;//the mode of mtensor is reverse of the real mobility tensor. Here mode 1: time, mode 2: original, mode 3: destination
 	final int tensor_time_period = 24;
+	int ncluster; // the number of cluster
+	Map<Integer, Integer> grid2cluster;//store the cluster id of each grid
+	Map<Integer, ArrayList<Integer>> clusteredGrids;//store the grid ids of each cluster
 	
 	public Grid_Mobility(){
-		//The boundary of Manhatten, (-74.029999,40.703546), (-73.974380,40.703546), (-73.924942,40.791459),(-73.98056,40.791459)
+		//Step0: The boundary of Manhatten, (-74.029999,40.703546), (-73.974380,40.703546), (-73.924942,40.791459),(-73.98056,40.791459)
 		CoordinateConversion convert = new CoordinateConversion();
+		boundGeoPoints = new Point_latlon[4];
+		boundGeoPoints[0] = new Point_latlon(40.703546, -74.029999);
+		boundGeoPoints[1] = new Point_latlon(40.703546, -73.974380);
+		boundGeoPoints[2] = new Point_latlon(40.791459, -73.924942);
+		boundGeoPoints[3] = new Point_latlon(40.791459, -73.98056);
+		
 		boundPoints = new Point[4];
 		boundPoints[0] = convert.convertLatLonToUTM(40.703546, -74.029999);
 		boundPoints[1] = convert.convertLatLonToUTM(40.703546, -73.974380);
 		boundPoints[2] = convert.convertLatLonToUTM(40.791459, -73.924942);
 		boundPoints[3] = convert.convertLatLonToUTM(40.791459, -73.98056);
 		
-		//1: initialize the grids
-		grid_width = 800;//1kilometer
-		grid_height = 800;//1 kilometer
+		//Step1: initialize the grids
+		grid_width = 800;//meter
+		grid_height = 800;//meter
+		boundary_width = boundPoints[1].x - boundPoints[0].x;
+		boundary_height = boundPoints[2].y - boundPoints[1].y;
+		grid_xnumber = (int)(boundary_width/grid_width);
+		grid_ynumber = (int)(boundary_height/grid_height);
+		grid_number = grid_xnumber * grid_ynumber;
+		
+	}
+	
+	
+	
+	public Grid_Mobility(String clusterFile) throws IOException{
+		//Step0: The boundary of Manhatten, (-74.029999,40.703546), (-73.974380,40.703546), (-73.924942,40.791459),(-73.98056,40.791459)
+		CoordinateConversion convert = new CoordinateConversion();
+		boundGeoPoints = new Point_latlon[4];
+		boundGeoPoints[0] = new Point_latlon(40.703546, -74.029999);
+		boundGeoPoints[1] = new Point_latlon(40.703546, -73.974380);
+		boundGeoPoints[2] = new Point_latlon(40.791459, -73.924942);
+		boundGeoPoints[3] = new Point_latlon(40.791459, -73.98056);
+		
+		boundPoints = new Point[4];
+		boundPoints[0] = convert.convertLatLonToUTM(40.703546, -74.029999);
+		boundPoints[1] = convert.convertLatLonToUTM(40.703546, -73.974380);
+		boundPoints[2] = convert.convertLatLonToUTM(40.791459, -73.924942);
+		boundPoints[3] = convert.convertLatLonToUTM(40.791459, -73.98056);
+		
+		//Step1: initialize the grids
+		grid_width = 800;//meter
+		grid_height = 800;//meter
+		
 		boundary_width = boundPoints[1].x - boundPoints[0].x;
 		boundary_height = boundPoints[2].y - boundPoints[1].y;
 		grid_xnumber = (int)(boundary_width/grid_width);
@@ -87,16 +131,246 @@ public class Grid_Mobility {
 				grid_index++;
 			}
 		
-		//2: initialize the tensor
-		mtensor = new int[tensor_time_period][][];
 		
-		for(int k=0;k<tensor_time_period;k++){//for each time mode
-			mtensor[k] = new int[grid_number][];
-			for(int i=0;i<grid_number;i++)//for each original mode
-				mtensor[k][i] = new int[grid_number];
+		//Step2: Read in the cluster file and build the grid to cluster
+		BufferedReader br = new BufferedReader(new FileReader(clusterFile));
+		ncluster = 0;
+		Set<Integer> clusterIds = new HashSet<Integer>();
+		grid2cluster = new HashMap<Integer,Integer>();
+		clusteredGrids = new HashMap<Integer, ArrayList<Integer>>();
+		String line = "";
+		
+		while((line = br.readLine()) != null){
+			String[] strs = line.split(" ");
+			int gridId = Integer.valueOf(strs[0]);
+			int cId = Integer.valueOf(strs[1]);
+			
+			if(clusterIds.contains(cId) == false){
+				ncluster++;
+				clusterIds.add(cId);
+			}
+			
+			grid2cluster.put(gridId, cId);
 		}
 		
+		
+		//step3: compute the grids of each cluster
+		for(Map.Entry<Integer, Integer> entry : grid2cluster.entrySet()){
+			if(clusteredGrids.containsKey(entry.getValue()) == false){
+				int cid = entry.getValue();//cluster id
+				clusteredGrids.put(cid, new ArrayList<Integer>());
+			}
+			clusteredGrids.get(entry.getValue()).add(entry.getKey());
+		}
+		
+		System.out.println("Finished Constructing");
 	}
+	
+	
+	
+	
+	public void outputGridsToFile(String ofile, int[] cids) throws IOException{
+		BufferedWriter br = new BufferedWriter(new FileWriter(ofile));
+	
+		br.write("cInd\t"+"cId\t" + "gId\t" + "latitude\t"+ "longitude\n");
+		int cIndex = 1;
+		for(int i=0;i<cids.length;i++) // for each cluster
+		{
+			//step0: get the grids within the specific cluster
+			ArrayList<Integer> grids = clusteredGrids.get(cids[i]);
+			
+			for(int j=0;j<grids.size();j++){// for each grid
+				ArrayList<Point_latlon> point_latlons = getGridGeoBoundary(grids.get(j));
+				
+				for(Point_latlon p : point_latlons){
+					String str = Integer.toString(cIndex) + "\t" + Integer.toString(cids[i]) + "\t" + Integer.toString(grids.get(j)) + "\t";
+					str += Double.toString(p.lat) + "\t";
+					str += Double.toString(p.lon) + "\n";
+					br.write(str);
+				}
+			}
+			cIndex++;
+		}
+		br.close();
+		System.out.println("Finish writing cluster geo boundary");
+	}
+	
+	
+	/**
+	 * Convert the given polygon to a WKT format(String).
+	 * @param poly
+	 * @return
+	 */
+	public String toPostGISWKT(Polygon poly){
+		String strbeg = "ST_GeomFromText('POLYGON((";
+		String strend = "))',92030)";
+		String strmid = "";
+		for(Point p : poly.points){
+			strmid += p.x + " ";
+			strmid += p.y + ",";
+		}
+		strmid += poly.points.get(0).x + " ";
+		strmid += poly.points.get(0).y;
+		
+		String str = strbeg + strmid + strend;
+		
+		return str;
+	}
+	
+	
+	/**
+	 * Get the four geo points of a specific grid
+	 * @param gIndex
+	 * @return
+	 */
+	public ArrayList<Point_latlon> getGridGeoBoundary(int gIndex){
+		ArrayList<Point_latlon> point_latlons = new ArrayList<Point_latlon>();
+		double grid_lon = (boundGeoPoints[1].lon - boundGeoPoints[0].lon) / grid_xnumber;
+		double grid_lat = (boundGeoPoints[2].lat - boundGeoPoints[1].lat) / grid_ynumber;
+
+		double lon_level_offset = (boundGeoPoints[2].lon - boundGeoPoints[1].lon) / grid_ynumber;
+		int i = gIndex / grid_xnumber;
+		int j = gIndex % grid_xnumber;
+
+		Point_latlon lbpoint = new Point_latlon(boundGeoPoints[0].lat + i
+				* grid_lat,boundGeoPoints[0].lon + i
+				* lon_level_offset + j * grid_lon);
+		point_latlons.add(lbpoint);
+		
+		Point_latlon rbpoint = new Point_latlon(lbpoint.lat, lbpoint.lon + grid_lon);
+		point_latlons.add(rbpoint);
+
+		Point_latlon rupoint = new Point_latlon(lbpoint.lat + grid_lat, rbpoint.lon + lon_level_offset);
+		point_latlons.add(rupoint);
+		
+		Point_latlon lupoint = new Point_latlon(rupoint.lat, rupoint.lon - grid_lon);
+		point_latlons.add(lupoint);
+		
+		
+		return point_latlons;
+	}
+	
+	
+
+	
+	/**
+	 * Get average 24 hours out-flow of a given cluster
+	 * @param cId
+	 * @return
+	 * @throws SQLException
+	 */
+	public ArrayList<Integer> temporalFlow(int cId) throws SQLException{
+		ArrayList<Integer> flows = new ArrayList<Integer>();
+		Map<String, Integer> t2v = new HashMap<String, Integer>();
+		Connection conn = ConnectDB.ConnectDatabase("taxidb");
+		Statement statement = conn.createStatement();
+		
+		System.out.println("Cluster ID:" + cId);
+
+		ArrayList<Polygon> polyset = new ArrayList<Polygon>();
+		for(int i=0;i<grid_number;i++)
+			if(grid2cluster.get(i) == cId)
+			{
+				System.out.print("grid:" + i +",");
+				polyset.add(grid_boundaries[i]);
+			}
+		System.out.println();
+		
+		for(int i=0;i<polyset.size();i++){
+			
+			String str_grid = toPostGISWKT(polyset.get(i));
+				// we ignore the time interval currently
+				String sql = "select extract(hour from start_time) as hour, count(*) as number from nytaxi"  
+						+ " where ST_within(start_location," + str_grid + ") "
+						+ " and extract(dow from start_time) != 0 and extract(dow from start_time) != 6 and extract(dow from start_time) != 5"
+						+ " group by extract(hour from start_time)"
+						+ " order by extract(hour from start_time)";
+	
+				ResultSet rs = statement.executeQuery(sql);
+						
+				//Go over each trip record
+				while (rs.next()) {
+					String h = rs.getString(1);
+					int c = rs.getInt(2);
+					String key = h;
+					t2v.put(key, c);
+				}
+				System.out.println("Finish Grid Index:" + i);
+			}	
+				
+			System.out.println("Finish Quering Data");
+			
+			for(int i=0;i<24;i++)
+			{
+				int val = t2v.get(Integer.toString(i));
+				System.out.print(val + ",");
+				flows.add(val);
+			}
+			System.out.println();
+			
+			return flows;
+		}
+	
+	/**
+	 * Get the out-flow volumes of a given cluster id at a specific time interval
+	 * @param cId
+	 * @param hour
+	 * @return
+	 * @throws SQLException 
+	 */
+	public ArrayList<Integer> flowDistribution(int cId, int hour) throws SQLException{
+		ArrayList<Integer> flows = new ArrayList<Integer>();
+		Map<String, Integer> t2v = new HashMap<String, Integer>();
+		Connection conn = ConnectDB.ConnectDatabase("taxidb");
+		Statement statement = conn.createStatement();
+		
+		ArrayList<Polygon> polyset = new ArrayList<Polygon>();
+		for(int i=0;i<grid_number;i++)
+			if(grid2cluster.get(i) == cId)
+			{
+				System.out.print("grid:" + i +",");
+				polyset.add(grid_boundaries[i]);
+			}
+		System.out.println();
+		
+		for(int i=0;i<polyset.size();i++){
+			
+			String str_grid = toPostGISWKT(polyset.get(i));
+				// we ignore the time interval currently
+				String sql = "select extract(month from start_time) as month, extract(day from start_time) as day, count(*) as number from nytaxi"  
+						+ " where ST_within(start_location," + str_grid + ") and extract(hour from start_time) =" + Integer.toString(hour)
+						+ " and extract(dow from start_time) != 0 and extract(dow from start_time) != 6 and extract(dow from start_time) != 5"
+						+ " group by extract(month from start_time), extract(day from start_time)"
+						+ " order by extract(month from start_time), extract(day from start_time)";
+	
+				ResultSet rs = statement.executeQuery(sql);
+						
+				//Go over each trip record
+				while (rs.next()) {
+					String m = rs.getString(1);
+					String d = rs.getString(2);
+					int c = rs.getInt(3);
+					String key = m + "_" + d;
+					int tmp_val = 0;
+					if(t2v.containsKey(key)){
+						tmp_val = t2v.get(key);
+					}
+					tmp_val += c;
+					t2v.put(key, tmp_val);
+				}
+				System.out.println("Finish Grid Index:" + i);
+			}	
+				
+			System.out.println("Finish Quering Data");
+			
+			for(Map.Entry<String, Integer> entry : t2v.entrySet())
+			{
+				System.out.print(entry.getValue() + ",");
+				flows.add(entry.getValue());
+			}
+			
+			return flows;
+		}
 	
 	
 	/**
@@ -119,8 +393,8 @@ public class Grid_Mobility {
 //	public Polygon getGridBoundaryBasedOnIndex(int index){
 //		Polygon grid_boundary = new Polygon();
 //		double x_level_offset = (boundPoints[2].x - boundPoints[1].x) / grid_ynumber;
-//		int i = index / grid_ynumber;
-//		int j = index % grid_ynumber;
+//		int i = index / grid_xnumber;
+//		int j = index % grid_xnumber;
 //
 //		Point lbpoint = new Point(boundPoints[0].x + i
 //				* x_level_offset + j * grid_width, boundPoints[0].y + i
@@ -209,44 +483,68 @@ public class Grid_Mobility {
 		
 		line = orig_feature.get(0).toString();
 		for(int i=1;i<orig_feature.size();i++)
-			line += " " + orig_feature.get(i).toString();
+			line += sep + orig_feature.get(i).toString();
 		
 		for(int i=0;i<dest_feature.size();i++)
-			line += " " + dest_feature.get(i).toString();
+			line += sep + dest_feature.get(i).toString();
 		
 		for(int i=0;i<time_feature.size();i++)
-			line += " " + time_feature.get(i).toString();
+			line += sep + time_feature.get(i).toString();
 		
 		return line;
 	}
 	
 	
 	/**
-	 * Generate the input features and corresponding values for the Gaussian process. 
-	 * @param i_dfile, the latent feature vectors of destination neighborhood
-	 * @param i_ofile, the latent feature vectors of original neighborhood
-	 * @param i_tfile, the latent feature vectors of time periods
-	 * @param o_valfile
-	 * @param o_ffile
+	 * Convert all latent features into a string.
+	 * @param feature1
+	 * @param feature2
 	 * @param sep
-	 * @throws SQLException 
-	 * @throws IOException 
+	 * @return
 	 */
-	public void gen_gp_inputs(String i_dfile, String i_ofile, String i_tfile, String o_valfile, String o_ffile,  Calendar btime, Calendar etime, String sep) throws SQLException, IOException{
-		//step0: read the latent feature vectors from several given files. 
-		ArrayList<ArrayList<Float>> dest_features = readInFeatures(i_dfile,sep);
-		ArrayList<ArrayList<Float>> orig_features = readInFeatures(i_ofile,sep);
-		ArrayList<ArrayList<Float>> time_features = readInFeatures(i_tfile,sep);
+	public String convertLatentFeature2String(ArrayList<Float> feature1, ArrayList<Float> feature2, String sep){
+		String line = "";
 		
-		int nneigh = dest_features.size();
+		line = feature1.get(0).toString();
+		for(int i=1;i<feature1.size();i++)
+			line += sep + feature1.get(i).toString();
+		
+		for(int i=0;i<feature2.size();i++)
+			line += sep + feature2.get(i).toString();
+		
+		return line;
+	}
+	
+	
 
-		//Step1: Get the trip records from the database
+	public void gen_gp_inputs(String o_flow_file) throws SQLException, IOException{
+		
+		//Step0: Set the begining time and end time of training data.
+		Calendar btime = new GregorianCalendar(TimeZone.getTimeZone("GMT-4"));
+		Calendar etime = new GregorianCalendar(TimeZone.getTimeZone("GMT-4"));
+		btime.set(2013, 8, 3, 0, 0, 0);//the month begins from zero.
+		etime.set(2013, 9, 20, 0, 0, 0);//the month begins from zero.
+		String sep = " ";
+		
+		//step1: read the latent feature vectors from several given files. 
+		//ArrayList<ArrayList<Float>> dest_features = readInFeatures(i_d_file,sep);
+		//ArrayList<ArrayList<Float>> orig_features = readInFeatures(i_o_file,sep);
+		//ArrayList<ArrayList<Float>> time_features = readInFeatures(i_t_file,sep);
+		
+		int nneigh = ncluster;
+		System.out.println("Number of cluster:" + ncluster);
+
+		//Step2: Get the trip records from the database
         int[][] hour_flow = new int[nneigh][];
         for(int i=0;i<nneigh;i++)
         	hour_flow[i] = new int[nneigh];
         
-		BufferedWriter valWriter = new BufferedWriter(new FileWriter(o_valfile));
-        BufferedWriter featureWriter = new BufferedWriter(new FileWriter(o_ffile));
+		BufferedWriter o_flow_Writer = new BufferedWriter(new FileWriter(o_flow_file));
+		Random rand = new Random();
+        //BufferedWriter ofeature_Writer = new BufferedWriter(new FileWriter(o_index_file));
+        
+		//BufferedWriter dest_valWriter = new BufferedWriter(new FileWriter(o_dval_file));
+        //BufferedWriter dest_featureWriter = new BufferedWriter(new FileWriter(o_dfeature_file));
         
 		CoordinateConversion convert = new CoordinateConversion();
 		Connection conn = ConnectDB.ConnectDatabase("taxidb");
@@ -294,29 +592,35 @@ public class Grid_Mobility {
 					
 					int orig_grid_index = locatePointInGridNeighbor(orig_point);
 					int dest_grid_index = locatePointInGridNeighbor(dest_point);
-					int hour_index = interval_beg.get(Calendar.HOUR_OF_DAY);
+					//int hour_index = interval_beg.get(Calendar.HOUR_OF_DAY);
 					if(orig_grid_index != -1 && dest_grid_index != -1)
 					{
-						hour_flow[orig_grid_index][dest_grid_index]++;
+						int orig_cid = grid2cluster.get(orig_grid_index);
+						int dest_cid = grid2cluster.get(dest_grid_index);
+						hour_flow[orig_cid][dest_cid]++;
 					}
 				}
 				
-				Random randomGenerator = new Random();
 				int hour_index = interval_beg.get(Calendar.HOUR_OF_DAY);
-				for(int i=0;i<nneigh;i++)//original
-					for(int j=0;j<nneigh;j++){//destination
-						if(hour_flow[i][j] > 2 || randomGenerator.nextFloat() < 0.5){
-							String feature_line = convertLatentFeature2String(orig_features.get(i), dest_features.get(j), time_features.get(hour_index), sep);
-							featureWriter.write(feature_line + '\n');
-							valWriter.write(Integer.toString(hour_flow[i][j])+ '\n');
-						}
-					}
 				
-
+				for(int i=0;i<nneigh;i++)//original
+				{
+					int sum = 0;
+					for(int k=0;k<nneigh;k++)
+						sum += hour_flow[i][k];
+					
+					String record =sum + " " + Integer.toString(i+1) + " " + Integer.toString(hour_index+1);
+					//ofeature_Writer.write(feature_line + '\n');
+					o_flow_Writer.write(record+ '\n');
+				}
+				
 				ctime.add(Calendar.HOUR, 1);
 			}
-		valWriter.close();
-		featureWriter.close();
+		
+		o_flow_Writer.close();
+		//ofeature_Writer.close();
+		//dest_featureWriter.close();
+		//dest_valWriter.close();
 		System.out.println("Finish Gaussian Training Data");
 	}
 	
@@ -324,12 +628,23 @@ public class Grid_Mobility {
 	public boolean generateTheTensor(String filename, Calendar btime, Calendar etime)
 			throws SQLException, IOException {
 		
+		//Step0: initialize the tensor
+		mtensor = new int[tensor_time_period][][];
+		
+		for(int k=0;k<tensor_time_period;k++){//for each time mode
+			mtensor[k] = new int[ncluster][];
+			for(int i=0;i<ncluster;i++)//for each original mode
+				mtensor[k][i] = new int[ncluster];
+		}
+		
 		//Step1: Get the trip records from the database
 		CoordinateConversion convert = new CoordinateConversion();
 		Connection conn = ConnectDB.ConnectDatabase("taxidb");
 		Statement statement = conn.createStatement();
 		Calendar ctime = (Calendar)btime.clone();
-		int workday_number = 0;
+		Calendar pretime = (Calendar)ctime.clone();
+		int workday_number = 1;
+		
 		while(ctime.before(etime)) {
 			if(ctime.get(Calendar.DAY_OF_WEEK) == Calendar.SUNDAY || ctime.get(Calendar.DAY_OF_WEEK) == Calendar.SATURDAY || ctime.get(Calendar.DAY_OF_WEEK) == Calendar.FRIDAY){
 				ctime.add(Calendar.HOUR_OF_DAY, 1);
@@ -337,7 +652,8 @@ public class Grid_Mobility {
 			}
 			
 
-			workday_number++;
+			if(pretime.get(Calendar.DAY_OF_MONTH) != ctime.get(Calendar.DAY_OF_MONTH))
+				workday_number++;
 			//String str_grid_rect = transfer2PostGISPolygon(llpoint, rupoint);
 			Calendar interval_beg = (Calendar)ctime.clone();
 			Calendar interval_end = (Calendar)ctime.clone();
@@ -375,7 +691,9 @@ public class Grid_Mobility {
 					int hour_index = interval_beg.get(Calendar.HOUR_OF_DAY);
 					if(orig_grid_index != -1 && dest_grid_index != -1)
 					{
-						mtensor[hour_index][orig_grid_index][dest_grid_index] += 1;
+						int orig_cid = grid2cluster.get(orig_grid_index);
+						int dest_cid = grid2cluster.get(dest_grid_index);
+						mtensor[hour_index][orig_cid][dest_cid] += 1;
 						count_within+=1;//////////////////////// for debug
 					}
 					count_whole++;//////////////////////// for debug
@@ -383,28 +701,19 @@ public class Grid_Mobility {
 				System.out.println("time:"+interval_beg_str+",count_whole:"+count_whole + ",count_within:"+count_within);
 
 
+				pretime = (Calendar)ctime.clone();
 				ctime.add(Calendar.HOUR, 1);
 			}
 		
 
-		workday_number = workday_number / 24;
 		//Step2: Output the tensor to a file
-		//initialize tensor to zeros
-		for(int t=0;t<tensor_time_period;t++){//go over times
-			for(int i=0;i<grid_number;i++){//go over originals
-				for(int j=1;j<grid_number;j++){//go over destinations
-					mtensor[t][i][j] = 0;
-				}
-			}
-		}
-		
 		System.out.println("workday number:"+workday_number);
 		FileWriter fwriter = new FileWriter(filename);
 		for(int t=0;t<tensor_time_period;t++){//go over times
 			//fwriter.append("t\n");
-			for(int i=0;i<grid_number;i++){//go over originals
+			for(int i=0;i<ncluster;i++){//go over originals
 				fwriter.append(Integer.toString(mtensor[t][i][0] / workday_number));
-				for(int j=1;j<grid_number;j++){//go over destinations
+				for(int j=1;j<ncluster;j++){//go over destinations
 					fwriter.append(" " + Integer.toString(mtensor[t][i][j]/ workday_number));
 				}
 				fwriter.append("\n");
@@ -418,29 +727,63 @@ public class Grid_Mobility {
 	}
 	
 	public static void main(String[] args) throws SQLException, IOException{
-		Grid_Mobility gm = new Grid_Mobility();
+		Grid_Mobility gm = new Grid_Mobility("../data/cluster.txt");
+//		Polygon poly = new Polygon();
+//		poly.addPoint(gm.boundPoints[0]);
+//		poly.addPoint(gm.boundPoints[1]);
+//		poly.addPoint(gm.boundPoints[2]);
+//		poly.addPoint(gm.boundPoints[3]);
+//		System.out.println(gm.toPostGISWKT(poly));
+		
+		
 		
 		///////////////////Generate the tensor//////////////////////////////
-		/*
+	
 		Calendar btime = new GregorianCalendar(TimeZone.getTimeZone("GMT-4"));
 		btime.set(2013, 8, 3, 0, 0, 0);//the month begins from zero.
 		
 		Calendar etime = new GregorianCalendar(TimeZone.getTimeZone("GMT-4"));
-		etime.set(2013, 9, 28, 0, 0, 0);//the month begins from zero.
+		etime.set(2013, 9, 22, 0, 0, 0);//the month begins from zero.
 		
-		gm.generateTheTensor("data/tensor.txt", btime, etime);
-		*/
+		gm.generateTheTensor("../data/tensor.txt", btime, etime);
+		
 		/////////////////////////////////////////////////////////////////
 		
 		
+		
+		
 		/////////////////Generate the Gaussian Process Training Data/////////////
-		//Calendar btime = new GregorianCalendar(TimeZone.getTimeZone("GMT-4"));
-		//Calendar etime = new GregorianCalendar(TimeZone.getTimeZone("GMT-4"));
-		//btime.set(2013, 8, 3, 0, 0, 0);//the month begins from zero.
-		//etime.set(2013, 8, 5, 0, 0, 0);//the month begins from zero.
-
-		//gm.gen_gp_inputs("data/dest_features.txt", "data/orig_features.txt", "data/time_features.txt", "data/flow.txt", "data/feature.txt", btime, etime, " ");
+		//gm.gen_gp_inputs("../data/flow_records.txt");
 				
 		///////////////////////////////////////////////////////////////////////
+		
+		
+		
+		
+		////////////////////Flow Distribution/////////////////////////////////
+		//for outflow, select neighborhood 4, 6, 10, 14, 20, hour 8, 10, 12, 18, 3		
+		//gm.flowDistribution(21, 8);
+		//System.out.println();
+		//gm.flowDistribution(21, 10);		
+
+		//gm.temporalFlow(18);
+		//gm.temporalFlow(19);
+		//gm.temporalFlow(21);
+		//gm.temporalFlow(22);
+		
+		/////////////////////////////////////////////////////////////////////
+		
+		
+		
+		
+		
+		
+		
+		///////////////////////////Output the boundary to the file///////////////////
+		//int[] a = new int[24];
+		//for(int i=0;i<24;i++)
+		//	a[i] = i;
+		//gm.outputGridsToFile("../data/cluster_boundaries.csv", a);
+		
 	}
 }

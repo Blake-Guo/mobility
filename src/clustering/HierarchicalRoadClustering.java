@@ -10,7 +10,7 @@ import java.io.*;
 import no.uib.cipr.matrix.DenseVector;
 
 //edge id and cluster id here start from 0.
-public class SpatialHierarchicalClustering {
+public class HierarchicalRoadClustering {
 	Map<Integer, Set<Integer>> clusterSet;// for each cluster set, store the
 											// edge ids belonging to it.
 	Map<Integer, Integer> edge2ClusterIds;// given the edge id, return its
@@ -18,7 +18,7 @@ public class SpatialHierarchicalClustering {
 	RoadNetwork rnetwork;
 	DenseVector[] eVecs;
 
-	public SpatialHierarchicalClustering() {
+	public HierarchicalRoadClustering() {
 	}
 
 	public void initHierarchical(String nodeInFile, String edgeInFile,
@@ -359,7 +359,7 @@ public class SpatialHierarchicalClustering {
 	}
 
 	public static void main(String[] args) throws IOException {
-		SpatialHierarchicalClustering shcluster = new SpatialHierarchicalClustering();
+		HierarchicalRoadClustering shcluster = new HierarchicalRoadClustering();
 		shcluster.initHierarchical("data/cnodes.csv", "data/cedges.csv",
 				"eigen_vecs.csv");
 		shcluster.hierarchicalClustering(30);
